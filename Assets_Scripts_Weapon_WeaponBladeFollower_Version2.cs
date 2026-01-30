@@ -28,6 +28,8 @@ public class WeaponBladeFollower : MonoBehaviour
     public bool PreviewMode = false;
     [Range(0f, 1f)] public float PreviewT = 0f;
 
+    public bool UsePointRotation = false;
+
     private enum Transition { None, Drawing, Sheathing }
     private Transition _transition = Transition.None;
     private float _elapsed;
@@ -327,6 +329,10 @@ public class WeaponBladeFollower : MonoBehaviour
         }
 
         float remaining = Mathf.Clamp(time, 0f, total);
+        float overallT = total <= 0f ? 0f : Mathf.Clamp01(time / total);
+        Quaternion anchorRot = drawing
+            ? Quaternion.Slerp(SheathAnchor.rotation, HandAnchor.rotation, overallT)
+            : Quaternion.Slerp(HandAnchor.rotation, SheathAnchor.rotation, overallT);
 
         for (int i = 0; i < segmentCount; i++)
         {
@@ -343,13 +349,13 @@ public class WeaponBladeFollower : MonoBehaviour
             Transform b = _pathPoints[i + 1];
 
             pos = Vector3.Lerp(a.position, b.position, t);
-            rot = Quaternion.Slerp(a.rotation, b.rotation, t);
+            rot = UsePointRotation ? Quaternion.Slerp(a.rotation, b.rotation, t) : anchorRot;
             return true;
         }
 
         Transform end = _pathPoints[_pathPoints.Count - 1];
         pos = end.position;
-        rot = end.rotation;
+        rot = UsePointRotation ? end.rotation : anchorRot;
         return true;
     }
 

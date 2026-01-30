@@ -185,9 +185,9 @@ public class WeaponEquipWizard : EditorWindow
         Transform sheathAnchor = FindOrCreateChild(sheathBone, SheathAnchorName);
 
         // 4) Draw Direction + Draw Points
-        Transform drawDirection = FindOrCreateChild(sheathBone, DrawDirectionName);
+        Transform drawDirection = FindOrCreateChildPreferParent(sheathAnchor, sheathBone, DrawDirectionName);
         List<Transform> drawPoints = _drawPointCount > 0
-            ? FindOrCreateDrawPoints(sheathBone, drawDirection, Mathf.Min(_drawPointCount, MaxDrawPoints), _drawPointSpacing)
+            ? FindOrCreateDrawPoints(sheathAnchor, sheathBone, drawDirection, Mathf.Min(_drawPointCount, MaxDrawPoints), _drawPointSpacing)
             : new List<Transform>();
 
         // 5) Follower
@@ -445,7 +445,34 @@ public class WeaponEquipWizard : EditorWindow
         return go.transform;
     }
 
+    private static Transform FindOrCreateChildPreferParent(Transform preferredParent, Transform fallbackParent, string name)
+    {
+        Transform child = preferredParent != null ? preferredParent.Find(name) : null;
+        if (child == null && fallbackParent != null)
+        {
+            child = fallbackParent.Find(name);
+            if (child != null && preferredParent != null)
+            {
+                Undo.SetTransformParent(child, preferredParent, "Move " + name);
+            }
+        }
+
+        if (child == null)
+        {
+            Transform parent = preferredParent != null ? preferredParent : fallbackParent;
+            if (parent == null) return null;
+
+            GameObject go = new GameObject(name);
+            Undo.RegisterCreatedObjectUndo(go, "Create " + name);
+            go.transform.SetParent(parent, false);
+            child = go.transform;
+        }
+
+        return child;
+    }
+
     private static List<Transform> FindOrCreateDrawPoints(
+        Transform sheathAnchor,
         Transform sheathBone,
         Transform drawDirection,
         int count,
@@ -453,18 +480,29 @@ public class WeaponEquipWizard : EditorWindow
     {
         List<Transform> list = new List<Transform>();
 
+        Transform parent = sheathAnchor != null ? sheathAnchor : sheathBone;
+        if (parent == null) return list;
+
         Vector3 dirWorld = drawDirection != null ? drawDirection.forward : sheathBone.forward;
-        Vector3 dirLocal = sheathBone.InverseTransformDirection(dirWorld).normalized;
+        Vector3 dirLocal = parent.InverseTransformDirection(dirWorld).normalized;
 
         for (int i = 0; i < count; i++)
         {
             string name = $"{DrawPointPrefix}{i + 1:00}";
-            Transform t = sheathBone.Find(name);
+            Transform t = parent.Find(name);
+            if (t == null && sheathBone != null && parent != sheathBone)
+            {
+                t = sheathBone.Find(name);
+                if (t != null)
+                {
+                    Undo.SetTransformParent(t, parent, "Move " + name);
+                }
+            }
             if (t == null)
             {
                 t = new GameObject(name).transform;
                 Undo.RegisterCreatedObjectUndo(t.gameObject, "Create " + name);
-                t.SetParent(sheathBone, false);
+                t.SetParent(parent, false);
                 t.localPosition = dirLocal * spacing * (i + 1);
                 t.localRotation = Quaternion.identity;
             }
