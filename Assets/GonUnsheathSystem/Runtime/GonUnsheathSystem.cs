@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Animations;
 
-namespace Gon.Unsheath
+namespace Gon.Unsheath.Runtime
 {
     [DisallowMultipleComponent]
     public class GonUnsheathSystem : MonoBehaviour

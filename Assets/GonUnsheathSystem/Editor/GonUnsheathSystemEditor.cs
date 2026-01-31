@@ -8,7 +8,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Animations;
-using Gon.Unsheath;
+using Gon.Unsheath.Runtime;
 
 [CustomEditor(typeof(GonUnsheathSystem))]
 public class GonUnsheathSystemEditor : Editor
